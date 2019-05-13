@@ -1,6 +1,5 @@
-
 {
-  "name": "react-native-benibeacon",
+  "name": "benibeacon",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -10,8 +9,8 @@
   "keywords": [
     "react-native"
   ],
-  "author": "",
-  "license": "",
+  "author": "mhandharbeni",
+  "license": "Apache-2.0",
   "peerDependencies": {
     "react-native": "^0.41.2"
   }
