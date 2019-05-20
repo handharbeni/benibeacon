@@ -62,5 +62,14 @@ RNBenibeacon.getListBeacon()
     return await RNBenibeacon.forceStartServices()
   }
 
+// getting data beacon
+	let beacon = this.getBeacon();
+    beacon.then((items)=>{
+      console.log(items);
+    })
+    .catch((error)=>{
+      console.log(items);
+    });
+
 ```
   
