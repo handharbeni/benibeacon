@@ -55,9 +55,6 @@ RNBenibeacon.getListBeacon()
   async getBeacon(){
     return await RNBenibeacon.getListBeacon()
   }
-  async getService(){
-    return await RNBenibeacon.getStateServices()
-  }
   async startService(){
     return await RNBenibeacon.startServices()
   }
