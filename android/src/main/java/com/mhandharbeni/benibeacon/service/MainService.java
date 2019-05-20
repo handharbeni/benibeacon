@@ -164,6 +164,8 @@ public class MainService extends Service implements BeaconConsumer {
         beaconManagers.removeAllMonitorNotifiers();
         beaconManagers.removeAllRangeNotifiers();
         beaconManagers.addRangeNotifier((collection, region) -> {
+            updateNotification(String.format("%d Beacon In Range", Constant.getListSNBeacon().size()));
+
             isStartRange = true;
             Constant.setListNativeBeacon(new ArrayList<>());
             Constant.setListSNBeacon(new ArrayList<>());
@@ -172,7 +174,6 @@ public class MainService extends Service implements BeaconConsumer {
                 if (countAlt < maxCountAlt){
                     countAlt++;
                 }
-                updateNotification(String.format("%d Beacon In Range", 0));
             }else{
                 Constant.setListNativeBeacon(new ArrayList<>());
                 Constant.setListSNBeacon(new ArrayList<>());
@@ -203,7 +204,6 @@ public class MainService extends Service implements BeaconConsumer {
                     listBeacon.add(estimoteBeacon);
                 }
             }
-            updateNotification(String.format("%d Beacon In Range", Constant.getListSNBeacon().size()));
 
             if (counterUserCoordinate >= maxCounterUserCoordinate) {
                 if (listBeacon.size() > 0){
@@ -220,7 +220,6 @@ public class MainService extends Service implements BeaconConsumer {
                         if (!beaconManagers.isBound(MainService.this)){
                             beaconManagers.bind(MainService.this);
                         }
-                        updateNotification(String.format("%d Beacon In Range", 0));
                         beaconManagers.startRangingBeaconsInRegion(regions);
                     }
                 } catch (RemoteException e) {
@@ -230,7 +229,6 @@ public class MainService extends Service implements BeaconConsumer {
 
             @Override
             public void didExitRegion(Region region) {
-                updateNotification(String.format("%d Beacon In Range", 0));
             }
 
             @Override
@@ -240,12 +238,10 @@ public class MainService extends Service implements BeaconConsumer {
                     switch (i){
                         case MonitorNotifier.INSIDE :
                             if (!isStartRange){
-                                updateNotification(String.format("%d Beacon In Range", 0));
                                 beaconManagers.startRangingBeaconsInRegion(regions);
                             }
                             break;
                         case MonitorNotifier.OUTSIDE :
-                            updateNotification(String.format("%d Beacon In Range", 0));
                             break;
                     }
                 }catch (Exception e){
