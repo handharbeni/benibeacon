@@ -3,9 +3,11 @@ package com.mhandharbeni.benibeacon.service;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
@@ -35,6 +37,7 @@ import java.util.UUID;
 import static org.altbeacon.beacon.service.BeaconService.TAG;
 
 public class MainService extends Service implements BeaconConsumer {
+    public static boolean isRunning = false;
     public static String FOREGROUND = "com.mhandharbeni.benibeacon.service.MainService";
     private Notification notification;
     private PendingIntent pendingIntent;
@@ -54,41 +57,13 @@ public class MainService extends Service implements BeaconConsumer {
     @SuppressLint("InvalidWakeLockTag")
     @Override
     public int onStartCommand(final Intent intent, int flags, int startId) {
-        Log.d(TAG, "Beacon Service onStartCommand: Starting");
-// Here, thisActivity is the current activity
-//        if (ContextCompat.checkSelfPermission(this,
-//                Manifest.permission.READ_CONTACTS)
-//                != PackageManager.PERMISSION_GRANTED) {
-//
-//            // Should we show an explanation?
-//            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-//                    Manifest.permission.READ_CONTACTS)) {
-//
-//                // Show an expanation to the user *asynchronously* -- don't block
-//                // this thread waiting for the user's response! After the user
-//                // sees the explanation, try again to request the permission.
-//
-//            } else {
-//
-//                // No explanation needed, we can request the permission.
-//
-//                ActivityCompat.requestPermissions(this,
-//                        new String[]{Manifest.permission.READ_CONTACTS},
-//                        MY_PERMISSIONS_REQUEST_READ_CONTACTS);
-//
-//                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-//                // app-defined int constant. The callback method gets the
-//                // result of the request.
-//            }
-//        }
         BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBluetoothAdapter.isEnabled()) {
             mBluetoothAdapter.enable();
         }
-
         showNotification();
+        isRunning = true;
         return START_STICKY;
-
     }
 
     private Notification getCompatNotification() {
@@ -101,12 +76,31 @@ public class MainService extends Service implements BeaconConsumer {
                 .setContentText(str)
                 .setTicker(str)
                 .setWhen(System.currentTimeMillis());
-        Intent startIntent = new Intent(getApplicationContext(), CobaServices.class);
+        Intent startIntent = new Intent(getApplicationContext(), MainService.class);
         PendingIntent contentIntent = PendingIntent.getActivity(this, 1000, startIntent, 0);
         builder.setContentIntent(contentIntent);
         return builder.build();
     }
+    private Notification getMyActivityNotification(String text){
+        // The PendingIntent to launch our activity if the user selects
+        // this notification
+        CharSequence title = "Beacon Scanning";
+        PendingIntent contentIntent = PendingIntent.getActivity(this,
+                0, new Intent(this, MainService.class), 0);
 
+        return new Notification.Builder(this)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentIntent(contentIntent).getNotification();
+    }
+
+    private void updateNotification(String text) {
+        Notification notification = getMyActivityNotification(text);
+
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.notify(Constant.NOTIF_BEACON_FOREGROUNDID, notification);
+    }
     private Notification getCurrentNotification(){
         return builder.build();
     }
@@ -119,6 +113,7 @@ public class MainService extends Service implements BeaconConsumer {
     public void onDestroy() {
         beaconManagers.unbind(this);
         stopForeground(true);
+        isRunning = false;
         super.onDestroy();
     }
     public void showNotification(){
@@ -151,7 +146,9 @@ public class MainService extends Service implements BeaconConsumer {
             beaconManagers.enableForegroundServiceScanning(getCompatNotification(), Constant.NOTIF_BEACON_FOREGROUNDID);
 
             beaconManagers.applySettings();
-            beaconManagers.bind(this);
+            if (!beaconManagers.isBound(this)){
+                beaconManagers.bind(this);
+            }
         }catch (Exception e){
             RNBenibeaconModule.exception = e;
         }
@@ -160,8 +157,10 @@ public class MainService extends Service implements BeaconConsumer {
 
     boolean isStartRange = false;
 
+    @SuppressLint("DefaultLocale")
     @Override
     public void onBeaconServiceConnect() {
+        updateNotification("Beacon Service Connected");
         beaconManagers.removeAllMonitorNotifiers();
         beaconManagers.removeAllRangeNotifiers();
         beaconManagers.addRangeNotifier((collection, region) -> {
@@ -170,12 +169,10 @@ public class MainService extends Service implements BeaconConsumer {
             Constant.setListSNBeacon(new ArrayList<>());
 
             if (collection.size()<1){
-
                 if (countAlt < maxCountAlt){
                     countAlt++;
-                }else{
-
                 }
+                updateNotification(String.format("%d Beacon In Range", 0));
             }else{
                 Constant.setListNativeBeacon(new ArrayList<>());
                 Constant.setListSNBeacon(new ArrayList<>());
@@ -206,6 +203,8 @@ public class MainService extends Service implements BeaconConsumer {
                     listBeacon.add(estimoteBeacon);
                 }
             }
+            updateNotification(String.format("%d Beacon In Range", Constant.getListSNBeacon().size()));
+
             if (counterUserCoordinate >= maxCounterUserCoordinate) {
                 if (listBeacon.size() > 0){
                     counterUserCoordinate=0;
@@ -221,6 +220,7 @@ public class MainService extends Service implements BeaconConsumer {
                         if (!beaconManagers.isBound(MainService.this)){
                             beaconManagers.bind(MainService.this);
                         }
+                        updateNotification(String.format("%d Beacon In Range", 0));
                         beaconManagers.startRangingBeaconsInRegion(regions);
                     }
                 } catch (RemoteException e) {
@@ -230,7 +230,7 @@ public class MainService extends Service implements BeaconConsumer {
 
             @Override
             public void didExitRegion(Region region) {
-
+                updateNotification(String.format("%d Beacon In Range", 0));
             }
 
             @Override
@@ -240,10 +240,12 @@ public class MainService extends Service implements BeaconConsumer {
                     switch (i){
                         case MonitorNotifier.INSIDE :
                             if (!isStartRange){
+                                updateNotification(String.format("%d Beacon In Range", 0));
                                 beaconManagers.startRangingBeaconsInRegion(regions);
                             }
                             break;
                         case MonitorNotifier.OUTSIDE :
+                            updateNotification(String.format("%d Beacon In Range", 0));
                             break;
                     }
                 }catch (Exception e){
