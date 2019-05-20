@@ -38,5 +38,32 @@ import RNBenibeacon from 'react-native-benibeacon';
 
 // TODO: What to do with the module?
 RNBenibeacon;
+
+// start services
+RNBenibeacon.startServices()
+
+// force start services
+RNBenibeacon.forceStartServices()
+
+// get list beacon
+RNBenibeacon.getListBeacon()
+
+```
+
+## Example
+```javascript
+  async getBeacon(){
+    return await RNBenibeacon.getListBeacon()
+  }
+  async getService(){
+    return await RNBenibeacon.getStateServices()
+  }
+  async startService(){
+    return await RNBenibeacon.startServices()
+  }
+  async forceStartService(){
+    return await RNBenibeacon.forceStartServices()
+  }
+
 ```
   
