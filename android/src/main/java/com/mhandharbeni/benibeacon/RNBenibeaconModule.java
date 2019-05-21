@@ -7,6 +7,7 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.support.v4.app.ActivityCompat;
 
 import com.estimote.coresdk.recognition.packets.Beacon;
@@ -67,7 +68,11 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
       BeaconManager.setUseTrackingCache(true);
 
       if (!MainService.isRunning){
-        getReactApplicationContext().startService(intent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+          getReactApplicationContext().startForegroundService(intent);
+        } else {
+          getReactApplicationContext().startService(intent);
+        }
       }
 
       if (exception != null){
@@ -94,7 +99,11 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
       try{
         getReactApplicationContext().stopService(intent);
       } finally {
-        getReactApplicationContext().startService(intent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+          getReactApplicationContext().startForegroundService(intent);
+        } else {
+          getReactApplicationContext().startService(intent);
+        }
       }
 
       if (exception != null){

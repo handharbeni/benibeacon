@@ -3,6 +3,7 @@ package com.mhandharbeni.benibeacon.service;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Notification;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -11,6 +12,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
+import android.os.Build;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.support.v4.app.ActivityCompat;
@@ -23,6 +25,7 @@ import com.estimote.coresdk.recognition.utils.MacAddress;
 import com.mhandharbeni.benibeacon.R;
 import com.mhandharbeni.benibeacon.RNBenibeaconModule;
 import com.mhandharbeni.benibeacon.utils.Constant;
+import com.mhandharbeni.benibeacon.utils.NotificationHelper;
 
 import org.altbeacon.beacon.BeaconConsumer;
 import org.altbeacon.beacon.BeaconParser;
@@ -52,6 +55,8 @@ public class MainService extends Service implements BeaconConsumer {
 
     private static int counterUserCoordinate = 0;
     private static int maxCounterUserCoordinate = 2;
+
+    private NotificationCompat.Builder notifBuilder;
 
 
     @SuppressLint("InvalidWakeLockTag")
@@ -96,10 +101,11 @@ public class MainService extends Service implements BeaconConsumer {
     }
 
     private void updateNotification(String text) {
-        Notification notification = getMyActivityNotification(text);
-
-        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.notify(Constant.NOTIF_BEACON_FOREGROUNDID, notification);
+//        Notification notification = getMyActivityNotification(text);
+//
+//        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+//        mNotificationManager.notify(Constant.NOTIF_BEACON_FOREGROUNDID, notification);
+        NotificationHelper.updateNotification(notifBuilder, String.valueOf(Constant.NOTIF_BEACON_FOREGROUNDID), text);
     }
     private Notification getCurrentNotification(){
         return builder.build();
@@ -117,7 +123,15 @@ public class MainService extends Service implements BeaconConsumer {
         super.onDestroy();
     }
     public void showNotification(){
-        startForeground(Constant.NOTIF_BEACON_FOREGROUNDID, getCompatNotification());
+        notifBuilder = NotificationHelper.createNotifications(
+                getApplicationContext(),
+                String.valueOf(Constant.NOTIF_BEACON_FOREGROUNDID),
+                getString(R.string.app_name),
+                "Beacon Scanner Active",
+                0,
+                MainService.class
+        );
+        startForeground(Constant.NOTIF_BEACON_FOREGROUNDID, notifBuilder.build());
         usingAltBeacon();
     }
 
@@ -143,7 +157,7 @@ public class MainService extends Service implements BeaconConsumer {
             beaconManagers.setBackgroundScanPeriod(1000L);
             beaconManagers.setBackgroundBetweenScanPeriod(30000L);
             beaconManagers.setEnableScheduledScanJobs(false);
-            beaconManagers.enableForegroundServiceScanning(getCompatNotification(), Constant.NOTIF_BEACON_FOREGROUNDID);
+            beaconManagers.enableForegroundServiceScanning(notifBuilder.build(), Constant.NOTIF_BEACON_FOREGROUNDID);
 
             beaconManagers.applySettings();
             if (!beaconManagers.isBound(this)){
