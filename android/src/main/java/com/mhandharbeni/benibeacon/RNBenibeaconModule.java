@@ -30,24 +30,17 @@ import com.mhandharbeni.benibeacon.utils.Constant;
 import org.altbeacon.beacon.BeaconManager;
 import org.altbeacon.beacon.Identifier;
 import org.altbeacon.beacon.MonitorNotifier;
-import org.altbeacon.beacon.RangeNotifier;
 import org.altbeacon.beacon.Region;
 import org.altbeacon.beacon.powersave.BackgroundPowerSaver;
 
 import java.util.Collection;
 import java.util.UUID;
 
-import javax.annotation.RegEx;
-
 public class RNBenibeaconModule extends ReactContextBaseJavaModule {
-
   public static Exception exception;
-
   private final ReactApplicationContext reactContext;
-
   static MainService mService;
   boolean mBound = false;
-
   public RNBenibeaconModule(ReactApplicationContext reactContext) {
     super(reactContext);
     this.reactContext = reactContext;
@@ -62,17 +55,14 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
   public String getName() {
     return "RNBenibeacon";
   }
-
   @ReactMethod
   public void getListBeacon(Promise promise){
     promise.resolve(getBeacon());
   }
-
   @ReactMethod
   public void getStateServices(Promise promise){
     promise.resolve(isMyServiceRunning(MainService.class));
   }
-
   @ReactMethod
   public void startServices(Promise promise){
     try {
@@ -101,7 +91,6 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
       promise.reject(e);
     }
   }
-
   @ReactMethod
   public void forceStartServices(Promise promise){
     try {
@@ -132,21 +121,49 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
       promise.reject(e);
     }
   }
-
   @ReactMethod
   public void bindingService(Promise promise){
     try {
       Intent intent = new Intent(getReactApplicationContext(), MainService.class);
       getReactApplicationContext().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
       promise.resolve("Success Binding Service");
-
     }catch (Exception e){
       promise.reject(e);
     }
   }
-
   @ReactMethod
   public void beaconMonitor(){
+    if (!mBound) {
+      Intent intent = new Intent(getReactApplicationContext(), MainService.class);
+      getReactApplicationContext().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+    }
+    getService().getBeaconManagers().addMonitorNotifier(new MonitorNotifier() {
+      @Override
+      public void didEnterRegion(Region region) {
+        String sRegion = region.getUniqueId();
+        WritableMap writableMap = Arguments.createMap();
+        writableMap.putString("region", sRegion);
+        getReactApplicationContext()
+                .getJSModule( DeviceEventManagerModule.RCTDeviceEventEmitter.class )
+                .emit("enterRegion", writableMap);
+      }
+      @Override
+      public void didExitRegion(Region region) {
+        String sRegion = region.getUniqueId();
+        WritableMap writableMap = Arguments.createMap();
+        writableMap.putString("region", sRegion);
+        getReactApplicationContext()
+                .getJSModule( DeviceEventManagerModule.RCTDeviceEventEmitter.class )
+                .emit("exitRegion", writableMap);
+      }
+      @Override
+      public void didDetermineStateForRegion(int i, Region region) {
+      }
+    });
+    getService().startMonitor();
+  }
+  @ReactMethod
+  public void beaconMonitorUUID(String regions){
     if (!mBound) {
       Intent intent = new Intent(getReactApplicationContext(), MainService.class);
       getReactApplicationContext().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
@@ -176,9 +193,9 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
       public void didDetermineStateForRegion(int i, Region region) {
       }
     });
-    getService().startMonitor();
+    Region region = new Region("backgroundRegion", Identifier.fromUuid(UUID.fromString(regions)), null, null);
+    getService().startMonitor(region);
   }
-
   @ReactMethod
   public void beaconRanging(){
     if (!mBound) {
@@ -193,7 +210,6 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
     });
     getService().startRange();
   }
-
   @ReactMethod
   public void beaconRangingUUID(String regions){
     if (!mBound) {
@@ -206,11 +222,34 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
               .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
               .emit("onRange", writableMap);
     });
-
     Region region = new Region("backgroundRegion", Identifier.fromUuid(UUID.fromString(regions)), null, null);
     getService().startRange(region);
   }
-
+  @ReactMethod
+  public void stopBeaconRanging(){
+    if (!mBound) {
+      Intent intent = new Intent(getReactApplicationContext(), MainService.class);
+      getReactApplicationContext().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+    }
+    getService().stopRanging();
+  }
+  @ReactMethod
+  public void stopBeaconRangingUUID(String regions){
+    if (!mBound) {
+      Intent intent = new Intent(getReactApplicationContext(), MainService.class);
+      getReactApplicationContext().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+    }
+    Region region = new Region("backgroundRegion", Identifier.fromUuid(UUID.fromString(regions)), null, null);
+    getService().stopRanging(region);
+  }
+  @ReactMethod
+  public void stopBeaconMonitor(){
+    if (!mBound) {
+      Intent intent = new Intent(getReactApplicationContext(), MainService.class);
+      getReactApplicationContext().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+    }
+    getService().stopMonitor();
+  }
   private WritableMap createRangingResponse(Collection<org.altbeacon.beacon.Beacon> beacons, Region region) {
     WritableMap map = new WritableNativeMap();
     map.putString("identifier", region.getUniqueId());
@@ -229,12 +268,9 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
     map.putArray("beacons", a);
     return map;
   }
-
   private WritableMap getBeacon(){
     WritableMap writableMap = new WritableNativeMap();
     WritableArray writableArray = new WritableNativeArray();
-
-
     for (Beacon beacon : Constant.getListSNBeacon()){
       WritableMap b = new WritableNativeMap();
       b.putString("macaddress", beacon.getMacAddress().toString());
@@ -246,7 +282,6 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
     writableMap.putArray("beacons", writableArray);
     return writableMap;
   }
-
   private boolean isMyServiceRunning(Class<?> serviceClass) {
     ActivityManager manager = (ActivityManager) reactContext.getSystemService(Context.ACTIVITY_SERVICE);
     for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
@@ -256,7 +291,6 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
     }
     return false;
   }
-
   public static void checkPermissions(Activity activity, Context context){
     int PERMISSION_ALL = 1;
     String[] PERMISSIONS = {
@@ -270,7 +304,6 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
       ActivityCompat.requestPermissions( activity, PERMISSIONS, PERMISSION_ALL);
     }
   }
-
   public static boolean hasPermissions(Context context, String... permissions) {
     if (context != null && permissions != null) {
       for (String permission : permissions) {
@@ -281,15 +314,11 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
     }
     return true;
   }
-
-
   @ReactMethod
   public static MainService getService(){
     return mService;
   }
-
   private ServiceConnection mConnection = new ServiceConnection() {
-
     @Override
     public void onServiceConnected(ComponentName className,
                                    IBinder service) {

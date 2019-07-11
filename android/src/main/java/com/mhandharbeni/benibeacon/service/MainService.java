@@ -273,6 +273,42 @@ public class MainService extends Service implements BeaconConsumer {
         }
     }
 
+    public boolean stopRanging(Region region){
+        try {
+            beaconManagers.stopRangingBeaconsInRegion(region);
+            return true;
+        }catch (Exception e){
+            return false;
+        }
+    }
+
+    public boolean stopRanging(){
+        try {
+            beaconManagers.stopRangingBeaconsInRegion(regions);
+            return true;
+        }catch (Exception e){
+            return false;
+        }
+    }
+
+    public boolean stopMonitor(Region region){
+        try {
+            beaconManagers.stopMonitoringBeaconsInRegion(region);
+            return true;
+        }catch (Exception e){
+            return false;
+        }
+    }
+
+    public boolean stopMonitor(){
+        try {
+            beaconManagers.stopMonitoringBeaconsInRegion(regions);
+            return true;
+        }catch (Exception e){
+            return false;
+        }
+    }
+
     public BeaconManager getBeaconManagers() {
         return beaconManagers;
     }
