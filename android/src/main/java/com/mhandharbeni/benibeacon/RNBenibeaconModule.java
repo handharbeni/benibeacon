@@ -11,7 +11,7 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.IBinder;
-import android.support.v4.app.ActivityCompat;
+import androidx.core.app.ActivityCompat;
 
 import com.estimote.coresdk.recognition.packets.Beacon;
 import com.facebook.react.bridge.Arguments;
@@ -140,21 +140,33 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
     getService().getBeaconManagers().addMonitorNotifier(new MonitorNotifier() {
       @Override
       public void didEnterRegion(Region region) {
-        String sRegion = region.getUniqueId();
-        WritableMap writableMap = Arguments.createMap();
-        writableMap.putString("region", sRegion);
-        getReactApplicationContext()
-                .getJSModule( DeviceEventManagerModule.RCTDeviceEventEmitter.class )
-                .emit("enterRegion", writableMap);
+        try {
+          String sRegion1 = region.getId1().toUuidString();
+          String sRegion2 = region.getId1().toUuidString();
+          String sRegion3 = region.getId1().toUuidString();
+          WritableMap writableMap = Arguments.createMap();
+          writableMap.putString("region1", sRegion1);
+          writableMap.putString("region2", sRegion2);
+          writableMap.putString("region3", sRegion3);
+          getReactApplicationContext()
+                  .getJSModule( DeviceEventManagerModule.RCTDeviceEventEmitter.class )
+                  .emit("enterRegion", writableMap);
+        }catch (Exception ignored){}
       }
       @Override
       public void didExitRegion(Region region) {
-        String sRegion = region.getUniqueId();
-        WritableMap writableMap = Arguments.createMap();
-        writableMap.putString("region", sRegion);
-        getReactApplicationContext()
-                .getJSModule( DeviceEventManagerModule.RCTDeviceEventEmitter.class )
-                .emit("exitRegion", writableMap);
+        try {
+          String sRegion1 = region.getId1().toUuidString();
+          String sRegion2 = region.getId1().toUuidString();
+          String sRegion3 = region.getId1().toUuidString();
+          WritableMap writableMap = Arguments.createMap();
+          writableMap.putString("region1", sRegion1);
+          writableMap.putString("region2", sRegion2);
+          writableMap.putString("region3", sRegion3);
+          getReactApplicationContext()
+                  .getJSModule( DeviceEventManagerModule.RCTDeviceEventEmitter.class )
+                  .emit("exitRegion", writableMap);
+        }catch (Exception ignored){}
       }
       @Override
       public void didDetermineStateForRegion(int i, Region region) {
@@ -171,22 +183,34 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
     getService().getBeaconManagers().addMonitorNotifier(new MonitorNotifier() {
       @Override
       public void didEnterRegion(Region region) {
-        String sRegion = region.getUniqueId();
-        WritableMap writableMap = Arguments.createMap();
-        writableMap.putString("region", sRegion);
-        getReactApplicationContext()
-                .getJSModule( DeviceEventManagerModule.RCTDeviceEventEmitter.class )
-                .emit("enterRegion", writableMap);
+        try {
+          String sRegion1 = region.getId1().toUuidString();
+          String sRegion2 = region.getId1().toUuidString();
+          String sRegion3 = region.getId1().toUuidString();
+          WritableMap writableMap = Arguments.createMap();
+          writableMap.putString("region1", sRegion1);
+          writableMap.putString("region2", sRegion2);
+          writableMap.putString("region3", sRegion3);
+          getReactApplicationContext()
+                  .getJSModule( DeviceEventManagerModule.RCTDeviceEventEmitter.class )
+                  .emit("enterRegion", writableMap);
+        }catch (Exception ignored){}
       }
 
       @Override
       public void didExitRegion(Region region) {
-        String sRegion = region.getUniqueId();
-        WritableMap writableMap = Arguments.createMap();
-        writableMap.putString("region", sRegion);
-        getReactApplicationContext()
-                .getJSModule( DeviceEventManagerModule.RCTDeviceEventEmitter.class )
-                .emit("exitRegion", writableMap);
+        try {
+          String sRegion1 = region.getId1().toUuidString();
+          String sRegion2 = region.getId1().toUuidString();
+          String sRegion3 = region.getId1().toUuidString();
+          WritableMap writableMap = Arguments.createMap();
+          writableMap.putString("region1", sRegion1);
+          writableMap.putString("region2", sRegion2);
+          writableMap.putString("region3", sRegion3);
+          getReactApplicationContext()
+                  .getJSModule( DeviceEventManagerModule.RCTDeviceEventEmitter.class )
+                  .emit("exitRegion", writableMap);
+        }catch (Exception ignored){}
       }
 
       @Override
@@ -198,32 +222,59 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
   }
   @ReactMethod
   public void beaconRanging(){
-    if (!mBound) {
+    try {
+      if (!mBound) {
+        Intent intent = new Intent(getReactApplicationContext(), MainService.class);
+        getReactApplicationContext().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+      }
+      getService().getBeaconManagers().addRangeNotifier((collection, region) -> {
+        WritableMap writableMap = createRangingResponse(collection, region);
+        getReactApplicationContext()
+                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit("onRange", writableMap);
+      });
+      getService().startRange();
+    }catch (Exception ignored){
       Intent intent = new Intent(getReactApplicationContext(), MainService.class);
       getReactApplicationContext().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+
+      getService().getBeaconManagers().addRangeNotifier((collection, region) -> {
+        WritableMap writableMap = createRangingResponse(collection, region);
+        getReactApplicationContext()
+                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit("onRange", writableMap);
+      });
+      getService().startRange();
     }
-    getService().getBeaconManagers().addRangeNotifier((collection, region) -> {
-      WritableMap writableMap = createRangingResponse(collection, region);
-      getReactApplicationContext()
-              .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-              .emit("onRange", writableMap);
-    });
-    getService().startRange();
   }
   @ReactMethod
   public void beaconRangingUUID(String regions){
-    if (!mBound) {
+    try {
+      if (!mBound) {
+        Intent intent = new Intent(getReactApplicationContext(), MainService.class);
+        getReactApplicationContext().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+      }
+      getService().getBeaconManagers().addRangeNotifier((collection, region) -> {
+        WritableMap writableMap = createRangingResponse(collection, region);
+        getReactApplicationContext()
+                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit("onRange", writableMap);
+      });
+      Region region = new Region("backgroundRegion", Identifier.fromUuid(UUID.fromString(regions)), null, null);
+      getService().startRange(region);
+    }catch (Exception ignored){
       Intent intent = new Intent(getReactApplicationContext(), MainService.class);
       getReactApplicationContext().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+
+      getService().getBeaconManagers().addRangeNotifier((collection, region) -> {
+        WritableMap writableMap = createRangingResponse(collection, region);
+        getReactApplicationContext()
+                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit("onRange", writableMap);
+      });
+      Region region = new Region("backgroundRegion", Identifier.fromUuid(UUID.fromString(regions)), null, null);
+      getService().startRange(region);
     }
-    getService().getBeaconManagers().addRangeNotifier((collection, region) -> {
-      WritableMap writableMap = createRangingResponse(collection, region);
-      getReactApplicationContext()
-              .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-              .emit("onRange", writableMap);
-    });
-    Region region = new Region("backgroundRegion", Identifier.fromUuid(UUID.fromString(regions)), null, null);
-    getService().startRange(region);
   }
   @ReactMethod
   public void stopBeaconRanging(){
@@ -249,6 +300,22 @@ public class RNBenibeaconModule extends ReactContextBaseJavaModule {
       getReactApplicationContext().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
     }
     getService().stopMonitor();
+  }
+  @ReactMethod
+  public void setActionEnter(String actions){
+    MainService.ACTION_BROADCAST_ENTERREGION = actions;
+  }
+  @ReactMethod
+  public void setActionExit(String actions){
+    MainService.ACTION_BROADCAST_EXITREGION = actions;
+  }
+  @ReactMethod
+  public void setActionDetermine(String actions){
+    MainService.ACTION_BROADCAST_DETERMINEREGION = actions;
+  }
+  @ReactMethod
+  public void setActionRange(String actions){
+    MainService.ACTION_BROADCAST_RANGE = actions;
   }
   private WritableMap createRangingResponse(Collection<org.altbeacon.beacon.Beacon> beacons, Region region) {
     WritableMap map = new WritableNativeMap();

@@ -6,37 +6,36 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
-import android.graphics.BitmapFactory;
 import android.os.Binder;
 import android.os.IBinder;
-import android.os.RemoteException;
-import android.support.v4.app.NotificationCompat;
+import androidx.core.app.NotificationCompat;
 import android.util.Log;
 
-import com.estimote.coresdk.recognition.packets.Beacon;
-import com.estimote.coresdk.recognition.utils.MacAddress;
-import com.facebook.react.bridge.Promise;
 import com.mhandharbeni.benibeacon.R;
 import com.mhandharbeni.benibeacon.RNBenibeaconModule;
 import com.mhandharbeni.benibeacon.utils.Constant;
 import com.mhandharbeni.benibeacon.utils.NotificationHelper;
 
+import org.altbeacon.beacon.Beacon;
 import org.altbeacon.beacon.BeaconConsumer;
 import org.altbeacon.beacon.BeaconManager;
 import org.altbeacon.beacon.BeaconParser;
 import org.altbeacon.beacon.MonitorNotifier;
+import org.altbeacon.beacon.RangeNotifier;
 import org.altbeacon.beacon.Region;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.io.Serializable;
+import java.util.Collection;
 
 import static org.altbeacon.beacon.service.BeaconService.TAG;
 
-public class MainService extends Service implements BeaconConsumer {
+public class MainService extends Service implements BeaconConsumer, RangeNotifier, MonitorNotifier {
     public static boolean isRunning = false;
     public static String FOREGROUND = "com.mhandharbeni.benibeacon.service.MainService";
+    public static String ACTION_BROADCAST_ENTERREGION = "NULL";
+    public static String ACTION_BROADCAST_EXITREGION= "NULL";
+    public static String ACTION_BROADCAST_DETERMINEREGION= "NULL";
+    public static String ACTION_BROADCAST_RANGE = "NULL";
     private Notification notification;
     private PendingIntent pendingIntent;
     private Intent notificationIntent;
@@ -53,6 +52,50 @@ public class MainService extends Service implements BeaconConsumer {
 
     private NotificationCompat.Builder notifBuilder;
     private final IBinder mBinder = new LocalBinder();
+
+    @Override
+    public void didEnterRegion(Region region) {
+        Log.d(TAG, "androidLibrary didEnterRegion: "+region.getId1());
+        if (!ACTION_BROADCAST_ENTERREGION.equals("NULL")){
+            Intent intent = new Intent();
+            intent.setAction(ACTION_BROADCAST_ENTERREGION);
+            intent.putExtra("data", (Serializable) region);
+            sendBroadcast(intent);
+        }
+    }
+
+    @Override
+    public void didExitRegion(Region region) {
+        Log.d(TAG, "androidLibrary didExitRegion: "+region.getId1());
+        if (!ACTION_BROADCAST_EXITREGION.equals("NULL")){
+            Intent intent = new Intent();
+            intent.setAction(ACTION_BROADCAST_EXITREGION);
+            intent.putExtra("data", (Serializable) region);
+            sendBroadcast(intent);
+        }
+    }
+
+    @Override
+    public void didDetermineStateForRegion(int i, Region region) {
+        Log.d(TAG, "androidLibrary didDetermineState: "+region.getId1());
+        if (!ACTION_BROADCAST_DETERMINEREGION.equals("NULL")){
+            Intent intent = new Intent();
+            intent.setAction(ACTION_BROADCAST_DETERMINEREGION);
+            intent.putExtra("data", (Serializable) region);
+            sendBroadcast(intent);
+        }
+    }
+
+    @Override
+    public void didRangeBeaconsInRegion(Collection<Beacon> collection, Region region) {
+        Log.d(TAG, "androidLibrary didRangeBeacon: "+collection.size());
+        if (!ACTION_BROADCAST_RANGE.equals("NULL")){
+            Intent intent = new Intent();
+            intent.setAction(ACTION_BROADCAST_RANGE);
+            intent.putExtra("data", (Serializable) collection);
+            sendBroadcast(intent);
+        }
+    }
 
     public class LocalBinder extends Binder {
         public MainService getService() {
@@ -112,16 +155,16 @@ public class MainService extends Service implements BeaconConsumer {
         try {
             beaconManagers = org.altbeacon.beacon.BeaconManager.getInstanceForApplication(getApplicationContext());
             regions = new Region("backgroundRegion", null, null, null);
-//
+
             beaconManagers.getBeaconParsers().clear();
             beaconManagers.getBeaconParsers().add(new BeaconParser().setBeaconLayout(Constant.IBEACON_LAYOUT));
             beaconManagers.getBeaconParsers().add(new BeaconParser().setBeaconLayout("m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24"));
-//
+
             beaconManagers.setForegroundScanPeriod(2000);
             beaconManagers.setForegroundBetweenScanPeriod(5000);
-//
-            beaconManagers.setBackgroundScanPeriod(1000L);
-            beaconManagers.setBackgroundBetweenScanPeriod(30000L);
+
+            beaconManagers.setBackgroundScanPeriod(2000);
+            beaconManagers.setBackgroundBetweenScanPeriod(5000);
             beaconManagers.setEnableScheduledScanJobs(false);
             beaconManagers.enableForegroundServiceScanning(notifBuilder.build(), Constant.NOTIF_BEACON_FOREGROUNDID);
 
@@ -141,101 +184,8 @@ public class MainService extends Service implements BeaconConsumer {
     @Override
     public void onBeaconServiceConnect() {
         updateNotification("Beacon Service Connected");
-//        beaconManagers.removeAllMonitorNotifiers();
-//        beaconManagers.removeAllRangeNotifiers();
-//        beaconManagers.addRangeNotifier((collection, region) -> {
-//            updateNotification(String.format("%d Beacon In Range", Constant.getListSNBeacon().size()));
-//
-//            isStartRange = true;
-//            Constant.setListNativeBeacon(new ArrayList<>());
-//            Constant.setListSNBeacon(new ArrayList<>());
-//
-//            if (collection.size()<1){
-//                if (countAlt < maxCountAlt){
-//                    countAlt++;
-//                }
-//            }else{
-//                Constant.setListNativeBeacon(new ArrayList<>());
-//                Constant.setListSNBeacon(new ArrayList<>());
-//                countAlt = 0;
-//            }
-//            if (counterUserCoordinate < maxCounterUserCoordinate){
-//                counterUserCoordinate++;
-//            }
-//
-//            List<Beacon> listBeacon = new ArrayList<>();
-//            listBeacon.clear();
-//            for (org.altbeacon.beacon.Beacon beacon:collection){
-//                if (beacon.getBluetoothAddress().contentEquals("FF:FF:FF:FF:FF:FF")){
-//                    return;
-//                }
-//                Beacon estimoteBeacon = new com.estimote.coresdk.recognition.packets.Beacon(
-//                        UUID.fromString(Constant.BEACON_UUID),
-//                        MacAddress.fromString(beacon.getBluetoothAddress()),
-//                        0,
-//                        0,
-//                        beacon.getMeasurementCount(),
-//                        beacon.getRssi(),
-//                        new Date()
-//                );
-//                int distance = (int) Math.round(beacon.getDistance());
-//                Constant.addEachNativeBeacon(estimoteBeacon);
-//                if (distance < 5){
-//                    listBeacon.add(estimoteBeacon);
-//                }
-//            }
-//
-//            if (counterUserCoordinate >= maxCounterUserCoordinate) {
-//                if (listBeacon.size() > 0){
-//                    counterUserCoordinate=0;
-//                }
-//            }
-//
-//        });
-//        beaconManagers.addMonitorNotifier(new MonitorNotifier() {
-//            @Override
-//            public void didEnterRegion(Region region) {
-//                try {
-//                    if (!isStartRange){
-//                        if (!beaconManagers.isBound(MainService.this)){
-//                            beaconManagers.bind(MainService.this);
-//                        }
-//                        beaconManagers.startRangingBeaconsInRegion(regions);
-//                    }
-//                } catch (RemoteException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//
-//            @Override
-//            public void didExitRegion(Region region) {
-//            }
-//
-//            @Override
-//            public void didDetermineStateForRegion(int i, Region region) {
-//                try {
-//
-//                    switch (i){
-//                        case MonitorNotifier.INSIDE :
-//                            if (!isStartRange){
-//                                beaconManagers.startRangingBeaconsInRegion(regions);
-//                            }
-//                            break;
-//                        case MonitorNotifier.OUTSIDE :
-//                            break;
-//                    }
-//                }catch (Exception e){
-//                    Log.d(TAG, "didDetermineStateForRegion: error ");
-//                }
-//            }
-//        });
-//
-//
-//        try {
-//            beaconManagers.startMonitoringBeaconsInRegion(regions);
-//        } catch (RemoteException e) {
-//            e.printStackTrace();
-//        }
+        beaconManagers.addMonitorNotifier(this);
+        beaconManagers.addRangeNotifier(this);
     }
 
     public boolean startRange(Region region){
